@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts - Press Start 2P for pixel font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* iOS-style light gray */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .app-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* iOS-style rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px; /* iPhone X width approx for mobile */
+            height: 90vh; /* Fill most of the screen height for mobile */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Desktop and Tablet adjustments */
+        @media (min-width: 768px) { /* md breakpoint for Tailwind */
+            .app-container {
+                max-width: 768px; /* Wider for tablets and desktops */
+                height: 80vh; /* Adjust height for larger screens */
+                max-height: 700px; /* Prevent it from getting too tall on very large screens */
+            }
+        }
+
+        .app-header {
+            background-color: #f8f8f8;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+            display: flex;
+            justify-content: space-between; /* Distribute items */
+            align-items: center;
+        }
+        .header-left, .header-right {
+            flex-shrink: 0; /* Prevent shrinking */
+            width: 80px; /* Fixed width for left/right sections to help center title */
+            display: flex;
+            align-items: center;
+        }
+        .header-left {
+            justify-content: flex-start;
+        }
+        .header-right {
+            justify-content: flex-end;
+        }
+        .app-header-title {
+            flex-grow: 1; /* Allow title to take available space */
+            text-align: center; /* Center the text within its own flex item */
+        }
+        .history-icon-button, .telegram-link-header {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: #007aff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 24px; /* Ensure consistent size for icons */
+            transition: transform 0.1s;
+            text-decoration: none; /* For the link */
+            font-weight: 500;
+            gap: 0.25rem; /* Space between icon and text */
+        }
+        .history-icon-button {
+            width: 24px; /* Fixed width for history icon button */
+        }
+        .telegram-link-header {
+            /* No specific width here, let content define it within header-left */
+        }
+        .history-icon-button:hover, .telegram-link-header:hover {
+            transform: scale(1.1);
+        }
+        .history-icon-button:active, .telegram-link-header:active {
+            transform: scale(0.9);
+        }
+        .history-icon, .telegram-icon-header {
+            fill: currentColor;
+            width: 24px;
+            height: 24px;
+        }
+        .pixel-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.5rem; /* Smaller size for pixel effect */
+            white-space: nowrap; /* Prevent wrapping */
+            color: #007aff; /* Match link color */
+        }
+        .language-toggle {
+            display: flex;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            gap: 0.5rem;
+        }
+        .language-button {
+            background-color: #e5e5ea;
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 500;
+            flex: 1;
+            text-align: center;
+        }
+        .language-button.active {
+            background-color: #007aff;
+            color: white;
+        }
+        .translation-area {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto; /* Allow scrolling for long history */
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input-group textarea {
+            border: 1px solid #d1d1d6;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            resize: vertical; /* Allow vertical resizing */
+            outline: none;
+            transition: border-color 0.2s;
+            min-height: 80px; /* Larger input area */
+            max-height: 200px;
+        }
+        .input-group textarea:focus {
+            border-color: #007aff;
+        }
+        .translate-button {
+            background-color: #007aff;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .translate-button:hover {
+            background-color: #005bb5;
+        }
+        .translate-button:active {
+            transform: scale(0.98);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007aff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .output-area {
+            background-color: #e5e5ea;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            padding-right: 3rem; /* Add more padding to the right for the speak button */
+            min-height: 80px; /* Larger output area */
+            word-wrap: break-word;
+            color: #333;
+            font-size: 1rem;
+            display: flex;
+            align-items: center; /* Vertically center text */
+            position: relative; /* For positioning the speak button */
+        }
+        .speak-button {
+            background: #d1e7ff; /* Light blue background for prominence */
+            border: 1px solid #007aff; /* Blue border */
+            border-radius: 50%; /* Circular */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+            cursor: pointer;
+            color: #007aff;
+            position: absolute;
+            bottom: 0.5rem; /* Position from bottom */
+            right: 0.5rem; /* Position from right */
+            width: 40px; /* Increased size for prominence */
+            height: 40px; /* Increased size for prominence */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, background-color 0.2s;
+            z-index: 10; /* Ensure it's on top */
+        }
+        .speak-button:hover {
+            transform: scale(1.1);
+            background-color: #c0dfff; /* Lighter blue on hover */
+        }
+        .speak-button:active {
+            transform: scale(0.9);
+        }
+        .speak-icon {
+            fill: currentColor;
+            width: 24px; /* Increased icon size */
+            height: 24px; /* Increased icon size */
+        }
+        .speak-loading-spinner {
+            border: 3px solid #f3f3f3; /* Thicker border for spinner */
+            border-top: 3px solid #007aff; /* Thicker border for spinner */
+            border-radius: 50%;
+            width: 20px; /* Larger spinner */
+            height: 20px; /* Larger spinner */
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        .history-section {
+            margin-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1rem;
+            display: none; /* Hidden by default */
+        }
+        .history-section.visible {
+            display: block; /* Show when visible class is added */
+        }
+        .history-section h3 {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.75rem;
+        }
+        .history-list {
+            max-height: 200px; /* Max height for history list */
+            overflow-y: auto;
+            background-color: #f8f8f8;
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+        }
+        .history-item {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-item:hover {
+            background-color: #e0e0e0;
+        }
+        .history-item .original-text {
+            font-weight: 500;
+            color: #555;
+        }
+        .history-item .translated-text {
+            color: #007aff;
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive adjustments for mobile (max-width: 600px) */
+        @media (max-width: 600px) {
+            .app-container {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0; /* Full screen on small devices */
+                box-shadow: none;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <!-- Telegram link in top-left -->
+            <div class="header-left">
+                <a href="https://t.me/nio_oe" target="_blank" class="telegram-link-header">
+                    <svg class="telegram-icon-header" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.71 7.33l-2.48 7.33c-.22.65-.4 1.05-.78 1.05-.33 0-.6-.2-.77-.42l-1.95-1.89-1.04 1.01c-.15.15-.27.27-.51.27-.25 0-.44-.19-.51-.35L6.6 12.8c-.2-.55-.04-.84.4-1.01l8.7-3.3c.4-.15.7-.05.6.22z"/>
+                    </svg>
+                    <span class="pixel-text">NioKoe</span>
+                </a>
+            </div>
+            <span class="app-header-title">Translator</span>
+            <div class="header-right">
+                <button id="historyIconButton" class="history-icon-button" aria-label="View Translation History">
+                    <!-- History Icon SVG -->
+                    <svg class="history-icon" viewBox="0 0 24 24">
+                        <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.51 0-2.91-.49-4.06-1.3l-1.42 1.42C8.36 20.42 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zM12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="language-toggle">
+            <button id="burmeseToEnglishBtn" class="language-button active">Burmese &rarr; English</button>
+            <button id="englishToBurmeseBtn" class="language-button">English &rarr; Burmese</button>
+        </div>
+
+        <div class="translation-area">
+            <div class="input-group">
+                <textarea id="inputText" placeholder="Enter text to translate..."></textarea>
+            </div>
+
+            <button id="translateButton" class="translate-button">
+                Translate
+                <span id="buttonSpinner" class="loading-spinner"></span>
+            </button>
+
+            <div class="output-area" id="outputText">
+                <!-- Translated text will appear here -->
+                <button id="speakButton" class="speak-button" style="display: none;">
+                    <svg class="speak-icon" viewBox="0 0 24 24">
+                        <path d="M12 4c-3.87 0-7 3.13-7 7v2c0 3.87 3.13 7 7 7s7-3.13 7-7v-2c0-3.87-3.13-7-7-7zm-1 14h2v-6h-2v6zm-1-8h4V7h-4v3z"/>
+                    </svg>
+                    <span id="speakSpinner" class="speak-loading-spinner"></span>
+                </button>
+            </div>
+
+            <div id="historySection" class="history-section">
+                <h3>Translation History</h3>
+                <div id="historyList" class="history-list">
+                    <!-- Translation history items will be appended here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const inputText = document.getElementById('inputText');
+        const translateButton = document.getElementById('translateButton');
+        const outputTextDiv = document.getElementById('outputText');
+        const buttonSpinner = document.getElementById('buttonSpinner');
+        const burmeseToEnglishBtn = document.getElementById('burmeseToEnglishBtn');
+        const englishToBurmeseBtn = document.getElementById('englishToBurmeseBtn');
+        const historyList = document.getElementById('historyList');
+        const historySection = document.getElementById('historySection');
+        const historyIconButton = document.getElementById('historyIconButton');
+        const speakButton = document.getElementById('speakButton');
+        const speakSpinner = document.getElementById('speakSpinner');
+        const speakIcon = speakButton.querySelector('.speak-icon');
+
+        let currentTranslationDirection = 'burmeseToEnglish'; // Default translation direction
+
+        // Load history from localStorage
+        let translationHistory = JSON.parse(localStorage.getItem('translationHistory')) || [];
+
+        // Function to render history items
+        function renderHistory() {
+            historyList.innerHTML = ''; // Clear existing history
+            if (translationHistory.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-500 text-center py-2">No history yet</p>';
+                return;
+            }
+            translationHistory.forEach((item, index) => {
+                const historyItemDiv = document.createElement('div');
+                historyItemDiv.classList.add('history-item');
+                historyItemDiv.innerHTML = `
+                    <div class="original-text">${item.original}</div>
+                    <div class="translated-text">${item.translated}</div>
+                `;
+                historyItemDiv.addEventListener('click', () => {
+                    inputText.value = item.original;
+                    // Directly set the text content, speak button will appear on translation
+                    outputTextDiv.textContent = item.translated;
+                    setTranslationDirection(item.direction);
+                    historySection.classList.remove('visible');
+                    // Manually trigger speak button visibility if text is present
+                    if (outputTextDiv.textContent.trim() !== '') {
+                        speakButton.style.display = 'flex';
+                    } else {
+                        speakButton.style.display = 'none';
+                    }
+                });
+                historyList.prepend(historyItemDiv); // Add new items to the top
+            });
+        }
+
+        // Function to save translation to history
+        function saveToHistory(original, translated, direction) {
+            translationHistory.unshift({ original, translated, direction }); // Add to the beginning
+            // Limit history items (e.g., to 20)
+            if (translationHistory.length > 20) {
+                translationHistory = translationHistory.slice(0, 20);
+            }
+            localStorage.setItem('translationHistory', JSON.stringify(translationHistory));
+            renderHistory(); // Re-render history after saving
+        }
+
+        // Helper function to convert base64 to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Helper function to convert PCM (Int16Array) to WAV Blob
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1; // Mono audio
+            const bytesPerSample = 2; // 16-bit PCM
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+
+            const dataLength = pcmData.byteLength;
+            const buffer = new ArrayBuffer(44 + dataLength); // 44 bytes for WAV header
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true); // ChunkSize
+            writeString(view, 8, 'WAVE');
+
+            // FMT sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+            view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
+            view.setUint16(22, numChannels, true); // NumChannels
+            view.setUint32(24, sampleRate, true); // SampleRate
+            view.setUint32(28, byteRate, true); // ByteRate
+            view.setUint16(32, blockAlign, true); // BlockAlign
+            view.setUint16(34, bytesPerSample * 8, true); // BitsPerSample
+
+            // DATA sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataLength, true); // Subchunk2Size
+
+            // Write PCM data
+            const pcmBytes = new Uint8Array(pcmData.buffer);
+            for (let i = 0; i < dataLength; i++) {
+                view.setUint8(44 + i, pcmBytes[i]);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // Function to play audio from a URL
+        function playAudio(audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(e => console.error("Error playing audio:", e));
+        }
+
+        // Function to speak translated text using TTS API
+        async function speakTranslatedText(text, languageCode) {
+            if (!text || text.trim() === '') {
+                console.warn("TTS: No text to speak.");
+                return;
+            }
+
+            speakIcon.style.display = 'none';
+            speakSpinner.style.display = 'block';
+            speakButton.disabled = true;
+            console.log("Attempting to speak text:", text, "with language code:", languageCode);
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: text }]
+                    }],
+                    generationConfig: {
+       
