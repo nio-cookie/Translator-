@@ -72,7 +72,7 @@
             flex-grow: 1; /* Allow title to take available space */
             text-align: center; /* Center the text within its own flex item */
         }
-        .history-icon-button, .telegram-link-header {
+        .history-icon-button {
             background: none;
             border: none;
             padding: 0;
@@ -86,18 +86,31 @@
             text-decoration: none; /* For the link */
             font-weight: 500;
             gap: 0.25rem; /* Space between icon and text */
-        }
-        .history-icon-button {
             width: 24px; /* Fixed width for history icon button */
         }
         .telegram-link-header {
-            /* No specific width here, let content define it within header-left */
+            background: none;
+            border: 1px solid #007aff; /* Initial border */
+            border-radius: 0.75rem; /* Rounded corners */
+            padding: 0.5rem 0.75rem; /* Padding inside the border */
+            cursor: pointer;
+            color: #007aff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease-in-out; /* Smooth transition for all properties */
+            font-weight: 500;
+            gap: 0.25rem; /* Space between icon and text */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Subtle initial shadow */
         }
         .history-icon-button:hover, .telegram-link-header:hover {
-            transform: scale(1.1);
+            transform: scale(1.05); /* Slightly enlarge on hover */
+            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2); /* Blue glow on hover */
+            border-color: #005bb5; /* Darker blue border on hover */
         }
         .history-icon-button:active, .telegram-link-header:active {
-            transform: scale(0.9);
+            transform: scale(0.95); /* Shrink slightly on click */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Smaller shadow on click */
         }
         .history-icon, .telegram-icon-header {
             fill: currentColor;
@@ -166,7 +179,10 @@
             border-radius: 0.75rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            /* Animation styles */
+            transition: all 0.3s ease-in-out; /* Smooth transition for all properties */
+            transform: scale(1); /* Initial scale */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Initial shadow */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -174,9 +190,12 @@
         }
         .translate-button:hover {
             background-color: #005bb5;
+            transform: scale(1.05); /* Slightly enlarge on hover */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); /* Deeper shadow on hover */
         }
         .translate-button:active {
-            transform: scale(0.98);
+            transform: scale(0.95); /* Shrink slightly on click */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Smaller shadow on click */
         }
         .loading-spinner {
             border: 4px solid #f3f3f3;
@@ -353,6 +372,11 @@
                     <!-- Translation history items will be appended here -->
                 </div>
             </div>
+
+            <!-- VPN Warning Message - Styled and repositioned within translation-area -->
+            <div class="text-center font-inter font-semibold text-base text-red-500 py-2 px-4 mt-4 mb-4">
+                <p>Note: This application may require a VPN to function correctly in certain regions due to API access restrictions.</p>
+            </div>
         </div>
     </div>
 
@@ -452,290 +476,4 @@
             view.setUint32(24, sampleRate, true); // SampleRate
             view.setUint32(28, byteRate, true); // ByteRate
             view.setUint16(32, blockAlign, true); // BlockAlign
-            view.setUint16(34, bytesPerSample * 8, true); // BitsPerSample
-
-            // DATA sub-chunk
-            writeString(view, 36, 'data');
-            view.setUint32(40, dataLength, true); // Subchunk2Size
-
-            // Write PCM data
-            const pcmBytes = new Uint8Array(pcmData.buffer);
-            for (let i = 0; i < dataLength; i++) {
-                view.setUint8(44 + i, pcmBytes[i]);
-            }
-
-            return new Blob([view], { type: 'audio/wav' });
-        }
-
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-
-        // Function to play audio from a URL
-        function playAudio(audioUrl) {
-            const audio = new Audio(audioUrl);
-            audio.play().catch(e => console.error("Error playing audio:", e));
-        }
-
-        // Function to speak translated text using TTS API
-        async function speakTranslatedText(text, languageCode) {
-            if (!text || text.trim() === '') {
-                console.warn("TTS: No text to speak.");
-                return;
-            }
-
-            speakIcon.style.display = 'none';
-            speakSpinner.style.display = 'block';
-            speakButton.disabled = true;
-            console.log("Attempting to speak text:", text, "with language code:", languageCode);
-
-            try {
-                const payload = {
-                    contents: [{
-                        parts: [{ text: text }]
-                    }],
-                    generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                // Using specified voices for Burmese and English
-                                prebuiltVoiceConfig: { voiceName: languageCode === 'my-MM' ? "Puck" : "Kore" }
-                            },
-                            languageCode: languageCode // Explicitly set language code
-                        }
-                    },
-                    model: "gemini-2.5-flash-preview-tts"
-                };
-
-                const apiKey = "AIzaSyCZuSjUlhVlDzTg9d5a3GeDoTv3fGb0-Ho"; // API Key ကို ဒီမှာ ထည့်သွင်းထားသည်
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-
-                let response;
-                let retries = 0;
-                const maxRetries = 3;
-                const baseDelay = 500;
-
-                while (retries < maxRetries) {
-                    try {
-                        response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-                        console.log(`TTS Fetch attempt ${retries + 1} response status:`, response.status);
-
-                        if (response.ok) {
-                            break;
-                        } else if (response.status === 429) {
-                            const delay = baseDelay * Math.pow(2, retries);
-                            console.warn(`TTS Rate limit hit. Retrying in ${delay / 1000} seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            retries++;
-                        } else {
-                            const errorData = await response.json();
-                            throw new Error(`TTS API error: ${response.status} - ${errorData.error.message || response.statusText}`);
-                        }
-                    } catch (error) {
-                        if (retries < maxRetries - 1) {
-                            const delay = baseDelay * Math.pow(2, retries);
-                            console.error(`TTS Fetch error: ${error.message}. Retrying in ${delay / 1000} seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            retries++;
-                        } else {
-                            throw error;
-                        }
-                    }
-                }
-
-                if (!response || !response.ok) {
-                    throw new Error("Failed to get TTS response after multiple retries.");
-                }
-
-                const result = await response.json();
-                console.log("TTS API raw response:", result); // Log raw response
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                console.log("TTS API part:", part); // Log the 'part'
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-                console.log("TTS audioData:", audioData ? "present" : "missing", "mimeType:", mimeType); // Check data and mimeType
-
-                if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
-                    console.log("TTS audio data and mimeType are valid. Proceeding to convert and play.");
-                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 16000; // Default to 16kHz if not found
-                    console.log("TTS sampleRate:", sampleRate);
-
-                    const pcmData = base64ToArrayBuffer(audioData);
-                    // API returns signed PCM16 audio data.
-                    const pcm16 = new Int16Array(pcmData);
-                    const wavBlob = pcmToWav(pcm16, sampleRate);
-                    const audioUrl = URL.createObjectURL(wavBlob);
-                    console.log("TTS audioUrl created:", audioUrl);
-                    playAudio(audioUrl);
-                } else {
-                    console.error("TTS: Unexpected response structure or mimeType. Check API response for details.");
-                    // Do not overwrite outputTextDiv, as it contains the translation
-                }
-
-            } catch (error) {
-                console.error("Error during TTS generation:", error);
-                // Do not overwrite outputTextDiv, as it contains the translation
-            } finally {
-                speakSpinner.style.display = 'none';
-                speakIcon.style.display = 'block';
-                speakButton.disabled = false;
-            }
-        }
-
-        // Function to perform translation
-        async function translateText() {
-            const userText = inputText.value.trim();
-            if (userText === '') {
-                outputTextDiv.textContent = "ဘာသာပြန်ရန် စာသားထည့်ပါ။"; // Please enter text to translate.
-                speakButton.style.display = 'none'; // Hide speak button if no text
-                return;
-            }
-
-            outputTextDiv.textContent = ''; // Clear previous translation
-            speakButton.style.display = 'none'; // Hide speak button during translation
-            buttonSpinner.style.display = 'block'; // Show loading spinner
-            translateButton.disabled = true; // Disable button during loading
-
-            try {
-                let prompt;
-                // Instruct Gemini to handle slang and informal language
-                if (currentTranslationDirection === 'burmeseToEnglish') {
-                    prompt = `Translate the following Burmese text to English, accurately translating any slang or informal language, providing only the translated text: "${userText}"`;
-                } else {
-                    prompt = `Translate the following English text to Burmese, accurately translating any slang or informal language, providing only the translated text: "${userText}"`;
-                }
-
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-                const payload = { contents: chatHistory };
-                const apiKey = "AIzaSyCZuSjUlhVlDzTg9d5a3GeDoTv3fGb0-Ho"; // API Key ကို ဒီမှာ ထည့်သွင်းထားသည်
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-                let response;
-                let retries = 0;
-                const maxRetries = 3; // Reduced retries for faster failure/success
-                const baseDelay = 500; // Base delay for exponential backoff (0.5 seconds)
-
-                while (retries < maxRetries) {
-                    try {
-                        response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (response.ok) {
-                            break; // Success, exit loop
-                        } else if (response.status === 429) { // Too Many Requests (Rate Limit)
-                            const delay = baseDelay * Math.pow(2, retries);
-                            console.warn(`Translation Rate limit hit. Retrying in ${delay / 1000} seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            retries++;
-                        } else {
-                            // Other HTTP errors
-                            const errorData = await response.json();
-                            throw new Error(`API error: ${response.status} - ${errorData.error.message || response.statusText}`);
-                        }
-                    } catch (error) {
-                        if (retries < maxRetries - 1) {
-                            const delay = baseDelay * Math.pow(2, retries);
-                            console.error(`Translation Fetch error: ${error.message}. Retrying in ${delay / 1000} seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            retries++;
-                        } else {
-                            throw error; // Re-throw error if max retries reached
-                        }
-                    }
-                }
-
-                if (!response || !response.ok) {
-                    throw new Error("Failed to get a successful response after multiple retries.");
-                }
-
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const translatedText = result.candidates[0].content.parts[0].text;
-                    outputTextDiv.textContent = translatedText;
-                    saveToHistory(userText, translatedText, currentTranslationDirection);
-                    speakButton.style.display = 'flex'; // Show speak button after successful translation
-                } else {
-                    outputTextDiv.textContent = "ဘာသာပြန်ခြင်း မအောင်မြင်ပါ။ ထပ်ကြိုးစားပါ။"; // Translation failed. Please try again.
-                    console.error("Unexpected API response structure:", result);
-                }
-
-            } catch (error) {
-                console.error("Error during translation:", error);
-                outputTextDiv.textContent = "ဘာသာပြန်နေစဉ် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ကျေးဇူးပြု၍ နောက်မှ ထပ်ကြိုးစားပါ။"; // An error occurred during translation. Please try again later.
-            } finally {
-                buttonSpinner.style.display = 'none'; // Hide loading spinner
-                translateButton.disabled = false; // Enable button
-            }
-        }
-
-        // Event listeners
-        translateButton.addEventListener('click', translateText);
-        inputText.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) { // Allow Shift+Enter for new line
-                e.preventDefault();
-                translateText();
-            }
-        });
-
-        // Function to set translation direction
-        function setTranslationDirection(direction) {
-            currentTranslationDirection = direction;
-            if (direction === 'burmeseToEnglish') {
-                burmeseToEnglishBtn.classList.add('active');
-                englishToBurmeseBtn.classList.remove('active');
-                inputText.placeholder = "ဘာသာပြန်လိုသော စာသားကို ရိုက်ထည့်ပါ...";
-            } else {
-                englishToBurmeseBtn.classList.add('active');
-                burmeseToEnglishBtn.classList.remove('active');
-                inputText.placeholder = "Enter text to translate...";
-            }
-            outputTextDiv.textContent = ''; // Clear output when direction changes
-            speakButton.style.display = 'none'; // Hide speak button when direction changes
-        }
-
-        burmeseToEnglishBtn.addEventListener('click', () => setTranslationDirection('burmeseToEnglish'));
-        englishToBurmeseBtn.addEventListener('click', () => setTranslationDirection('englishToBurmese'));
-
-        // Toggle history section visibility
-        historyIconButton.addEventListener('click', () => {
-            historySection.classList.toggle('visible');
-            if (historySection.classList.contains('visible')) {
-                renderHistory(); // Render history only when it becomes visible
-            }
-        });
-
-        // Speak button event listener
-        speakButton.addEventListener('click', () => {
-            const textToSpeak = outputTextDiv.textContent;
-            let languageCode = '';
-            // Determine language code based on current translation direction
-            if (currentTranslationDirection === 'burmeseToEnglish') {
-                languageCode = 'en-US'; // Translated text is English
-            } else {
-                languageCode = 'my-MM'; // Translated text is Burmese
-            }
-            speakTranslatedText(textToSpeak, languageCode);
-        });
-
-        // Initial setup
-        setTranslationDirection('burmeseToEnglish'); // Set default direction and placeholder
-        // History is not rendered initially, only when the icon is clicked
-    </script>
-</body>
-</html>
-
+         
